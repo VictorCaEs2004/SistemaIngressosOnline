@@ -1,0 +1,401 @@
+{
+  "info": {
+    "name": "Ingressos Online - A3",
+    "description": "Collection para demonstração do sistema de ingressos online via API Gateway (Nginx).\n\nOrdem sugerida:\n1. 00 - Setup (health + admin)\n2. 01 - Fluxo de Apresentação\n\nVariáveis automáticas: admin_token, user_token, event_id, order_id",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost" },
+    { "key": "admin_email", "value": "admin@ingressos.com" },
+    { "key": "admin_password", "value": "admin123" },
+    { "key": "user_email", "value": "comprador@teste.com" },
+    { "key": "user_password", "value": "senha123" },
+    { "key": "admin_token", "value": "" },
+    { "key": "user_token", "value": "" },
+    { "key": "event_id", "value": "1" },
+    { "key": "order_id", "value": "1" },
+    { "key": "payment_id", "value": "1" },
+    { "key": "idempotency_key", "value": "demo-{{$timestamp}}" }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "Auth Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/health"
+          }
+        },
+        {
+          "name": "Events Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/events/health"
+          }
+        },
+        {
+          "name": "Orders Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/orders/health"
+          }
+        },
+        {
+          "name": "Payments Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/payments/health"
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', json.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "{{admin_email}}" },
+                { "key": "password", "value": "{{admin_password}}" }
+              ]
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Admin - Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Fluxo de Apresentação",
+      "item": [
+        {
+          "name": "Admin - Criar Evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('event_id', String(json.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Show de Rock - Apresentação\",\n  \"date\": \"2026-12-15T20:00:00Z\",\n  \"price\": 150.0,\n  \"available_quantity\": 100\n}"
+            },
+            "url": "{{base_url}}/events/events/"
+          }
+        },
+        {
+          "name": "Público - Listar Eventos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/events/events/"
+          }
+        },
+        {
+          "name": "Cadastrar Usuário Comprador",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"role\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          }
+        },
+        {
+          "name": "Login Usuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('user_token', json.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "{{user_email}}" },
+                { "key": "password", "value": "{{user_password}}" }
+              ]
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Criar Pedido (Pix - pago)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('idempotency_key', 'order-pix-' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('order_id', String(json.id));",
+                  "    if (json.payment_id) {",
+                  "        pm.collectionVariables.set('payment_id', String(json.payment_id));",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{user_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": {{event_id}},\n  \"quantity\": 2,\n  \"payment_method\": \"pix\"\n}"
+            },
+            "url": "{{base_url}}/orders/orders/"
+          }
+        },
+        {
+          "name": "Listar Meus Pedidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{user_token}}" }
+            ],
+            "url": "{{base_url}}/orders/orders/"
+          }
+        },
+        {
+          "name": "Detalhe do Pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{user_token}}" }
+            ],
+            "url": "{{base_url}}/orders/orders/{{order_id}}"
+          }
+        },
+        {
+          "name": "Consultar Pagamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/payments/payments/{{payment_id}}"
+          }
+        },
+        {
+          "name": "Listar Eventos (ver estoque atualizado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/events/events/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Cenários Extras",
+      "item": [
+        {
+          "name": "Criar Pedido (Boleto - pendente)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('idempotency_key', 'order-boleto-' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{user_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": {{event_id}},\n  \"quantity\": 1,\n  \"payment_method\": \"boleto\"\n}"
+            },
+            "url": "{{base_url}}/orders/orders/"
+          }
+        },
+        {
+          "name": "Reserva Direta (Idempotência)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('idempotency_key', 'reserve-demo-fixed-key');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 1\n}"
+            },
+            "url": "{{base_url}}/events/events/{{event_id}}/reserve"
+          }
+        },
+        {
+          "name": "Reserva Direta (repetir - idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "reserve-demo-fixed-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 1\n}"
+            },
+            "url": "{{base_url}}/events/events/{{event_id}}/reserve"
+          }
+        },
+        {
+          "name": "Pagamento com Rejeição Forçada",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('idempotency_key', 'pay-reject-' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": 999,\n  \"user_id\": \"demo-user\",\n  \"amount\": 50.0,\n  \"method\": \"credit_card\",\n  \"force_reject\": true\n}"
+            },
+            "url": "{{base_url}}/payments/payments/"
+          }
+        },
+        {
+          "name": "Admin - Atualizar Preço do Evento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 199.90\n}"
+            },
+            "url": "{{base_url}}/events/events/{{event_id}}/price"
+          }
+        },
+        {
+          "name": "Admin - Atualizar Estoque do Evento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"available_quantity\": 200\n}"
+            },
+            "url": "{{base_url}}/events/events/{{event_id}}/quantity"
+          }
+        }
+      ]
+    }
+  ]
+}

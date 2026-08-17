@@ -1,0 +1,189 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-06-07T00:00:00.000Z",
+  "__export_source": "ingressos-online",
+  "resources": [
+    {
+      "_type": "workspace",
+      "_id": "wrk_ingressos",
+      "name": "Ingressos Online - A3",
+      "description": "Demonstração do sistema via API Gateway"
+    },
+    {
+      "_type": "environment",
+      "_id": "env_ingressos",
+      "parentId": "wrk_ingressos",
+      "name": "Local",
+      "data": {
+        "base_url": "http://localhost",
+        "admin_email": "admin@ingressos.com",
+        "admin_password": "admin123",
+        "user_email": "comprador@teste.com",
+        "user_password": "senha123",
+        "admin_token": "",
+        "user_token": "",
+        "event_id": "1",
+        "order_id": "1",
+        "payment_id": "1",
+        "idempotency_key": "demo-key"
+      }
+    },
+    {
+      "_type": "request_group",
+      "_id": "fld_setup",
+      "parentId": "wrk_ingressos",
+      "name": "00 - Setup"
+    },
+    {
+      "_type": "request_group",
+      "_id": "fld_demo",
+      "parentId": "wrk_ingressos",
+      "name": "01 - Fluxo de Apresentação"
+    },
+    {
+      "_type": "request_group",
+      "_id": "fld_extra",
+      "parentId": "wrk_ingressos",
+      "name": "02 - Cenários Extras"
+    },
+    {
+      "_type": "request",
+      "_id": "req_gateway_health",
+      "parentId": "fld_setup",
+      "name": "Gateway Health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health"
+    },
+    {
+      "_type": "request",
+      "_id": "req_login_admin",
+      "parentId": "fld_setup",
+      "name": "Login Admin",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          { "name": "username", "value": "{{ _.admin_email }}" },
+          { "name": "password", "value": "{{ _.admin_password }}" }
+        ]
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_create_event",
+      "parentId": "fld_demo",
+      "name": "Admin - Criar Evento",
+      "method": "POST",
+      "url": "{{ _.base_url }}/events/events/",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Show de Rock - Apresentação\",\n  \"date\": \"2026-12-15T20:00:00Z\",\n  \"price\": 150.0,\n  \"available_quantity\": 100\n}"
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_list_events",
+      "parentId": "fld_demo",
+      "name": "Público - Listar Eventos",
+      "method": "GET",
+      "url": "{{ _.base_url }}/events/events/"
+    },
+    {
+      "_type": "request",
+      "_id": "req_register_user",
+      "parentId": "fld_demo",
+      "name": "Cadastrar Usuário Comprador",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/register",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ _.user_email }}\",\n  \"password\": \"{{ _.user_password }}\",\n  \"role\": \"user\"\n}"
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_login_user",
+      "parentId": "fld_demo",
+      "name": "Login Usuário",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          { "name": "username", "value": "{{ _.user_email }}" },
+          { "name": "password", "value": "{{ _.user_password }}" }
+        ]
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_create_order",
+      "parentId": "fld_demo",
+      "name": "Criar Pedido (Pix - pago)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders/orders/",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.user_token }}" },
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Idempotency-Key", "value": "{{ _.idempotency_key }}" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": {{ _.event_id }},\n  \"quantity\": 2,\n  \"payment_method\": \"pix\"\n}"
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_list_orders",
+      "parentId": "fld_demo",
+      "name": "Listar Meus Pedidos",
+      "method": "GET",
+      "url": "{{ _.base_url }}/orders/orders/",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.user_token }}" }
+      ]
+    },
+    {
+      "_type": "request",
+      "_id": "req_order_boleto",
+      "parentId": "fld_extra",
+      "name": "Criar Pedido (Boleto - pendente)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders/orders/",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.user_token }}" },
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Idempotency-Key", "value": "boleto-{{ _.idempotency_key }}" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": {{ _.event_id }},\n  \"quantity\": 1,\n  \"payment_method\": \"boleto\"\n}"
+      }
+    },
+    {
+      "_type": "request",
+      "_id": "req_reserve_idem",
+      "parentId": "fld_extra",
+      "name": "Reserva Direta (Idempotência)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/events/events/{{ _.event_id }}/reserve",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Idempotency-Key", "value": "reserve-demo-fixed-key" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"quantity\": 1\n}"
+      }
+    }
+  ]
+}
